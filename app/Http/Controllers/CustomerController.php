@@ -21,33 +21,48 @@ class CustomerController extends Controller
     public function sendingEmails(StoreCustomerRequest $request){
         $response = $emailData= array();
 
-
-
-        if($request){
-
-            $details = [];
-            $details['fullname'] = $request->fullname;
-            $details['email'] = $request->email;
-            $details['body'] = $request->body;
-
-            //$details['email'] = view('templates.email', $emailData)->render();
-            $temp_no = $request->template_no;
-
-
-             $details['template'] = Templates::find($temp_no)->get()->toarray();
-            dispatch(new \App\Jobs\Emails($details));
-            //return response()->json(['message'=>'Mail Send Successfully!!']);
-
-            $response =array(
-                "status" => 200,
-                "messages" => "Successfull! Thank you for using the service, you email is in the queues will be send shortly.",
-                );
-        }else{
+        $validate = Validator::make($request->all(), [
+            'fullname' => 'required|min:5',
+            'email' => 'required',
+            'body' => 'required',
+        ],[
+            'name.required' => 'Name is must.',
+            'name.min' => 'Name must have 5 char.',
+        ]);
+        if($validate->fails()){
             $response =array(
                 "status" => 503,
-                "msg" => "Request type not valid.",
-                );
+                "msg" => $validate->errors(),
+            );
+        }else{
+            if($request){
+
+                $details = [];
+                $details['fullname'] = $request->fullname;
+                $details['email'] = $request->email;
+                $details['body'] = $request->body;
+
+                //$details['email'] = view('templates.email', $emailData)->render();
+
+                $temp_no = $request->template_no;
+
+
+                $details['template'] = Templates::find($temp_no)->get()->toarray();
+                dispatch(new \App\Jobs\Emails($details));
+                //return response()->json(['message'=>'Mail Send Successfully!!']);
+
+                $response =array(
+                    "status" => 200,
+                    "messages" => "Successfull! Thank you for using the service, you email is in the queues will be send shortly.",
+                    );
+            }else{
+                $response =array(
+                    "status" => 503,
+                    "msg" => "Request type not valid.",
+                    );
+            }
         }
+
 
         return response()->json($response);
     }
